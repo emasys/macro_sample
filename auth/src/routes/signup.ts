@@ -1,7 +1,8 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
-import { DatabaseConnectionError } from '../errors/db-connection-error';
+import { BadRequestError } from '../errors/bad-request-error';
 import { RequestValidationError } from '../errors/request-validation-error';
+import { User } from '../models/user';
 
 const router = express.Router();
 
@@ -14,14 +15,17 @@ router.post(
       .isLength({ min: 4, max: 20 })
       .withMessage('must be 4 and 20 chars'),
   ],
-  (req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       throw new RequestValidationError(errors.array())
     }
-    throw new DatabaseConnectionError();
     const { email, password } = req.body;
-    res.status(201).send({ email, password });
+    const user = await User.findOne({ email });
+    if (user) throw new BadRequestError('email in use', 409)
+    const newUser = User.build({ email, password });
+    await newUser.save();
+    res.status(201).send(newUser);
   }
 );
 
