@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { body, validationResult } from 'express-validator';
+import jwt from 'jsonwebtoken';
 import { BadRequestError } from '../errors/bad-request-error';
 import { RequestValidationError } from '../errors/request-validation-error';
 import { User } from '../models/user';
@@ -25,6 +26,14 @@ router.post(
     if (user) throw new BadRequestError('email in use', 409)
     const newUser = User.build({ email, password });
     await newUser.save();
+    const userToken = jwt.sign({
+      id: newUser.id,
+      email: newUser.email
+    }, process.env.JWT_KEY !)
+    //set cookie session
+    req.session = {
+      jwt: userToken
+    };
     res.status(201).send(newUser);
   }
 );

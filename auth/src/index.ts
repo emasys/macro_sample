@@ -2,6 +2,7 @@ import express from 'express';
 import 'express-async-errors';
 import { json } from 'body-parser';
 import mongoose from 'mongoose';
+import cookieSession from 'cookie-session';
 import { currentUserRouter } from './routes/current-user';
 import { signInRouter } from './routes/signin';
 import { signOutRouter } from './routes/signout';
@@ -12,7 +13,13 @@ import { NotFoundError } from './errors/not-found-error';
 const PORT = 3000;
 const MONGODB_URI = 'mongodb://auth-mongo-srv:27017/auth';
 const app = express();
+app.set('trust proxy', true);
+
 app.use(json());
+app.use(cookieSession({
+  signed: false,
+  secure: true
+}))
 app.use(currentUserRouter);
 app.use(signInRouter);
 app.use(signOutRouter);
@@ -23,6 +30,9 @@ app.all('*', () => {
 app.use(errorHandler);
 
 const start = async () => {
+  if(!process.env.JWT_KEY){
+    throw new Error('JWT_KEY not provided');
+  }
   try {
     await mongoose.connect(MONGODB_URI, {
       useNewUrlParser: true,
