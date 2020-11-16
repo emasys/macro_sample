@@ -1,19 +1,15 @@
-import express from 'express';
-import jwt from 'jsonwebtoken';
-import { AuthenticationError } from '../errors/authentication-error';
+import express, { Request, Response } from 'express';
+import { currentUser } from '../middlewares/current-user';
+import { requireAuth } from '../middlewares/require-auth';
 
 const router = express.Router();
 
-router.get('/api/users/currentuser', (req, res) => {
-  if (!req.session?.jwt) {
-    throw new AuthenticationError('user not authorized');
+router.get(
+  '/api/users/currentuser',
+  [currentUser, requireAuth],
+  (req: Request, res: Response) => {
+    return res.send({ currentUser: req.currentUser || null });
   }
-  try {
-    const payload = jwt.verify(req.session.jwt, process.env.JWT_KEY!);
-    return res.send({ currentUser: payload });
-  } catch (error) {
-    throw new AuthenticationError('user not authorized');
-  }
-});
+);
 
 export { router as currentUserRouter };
